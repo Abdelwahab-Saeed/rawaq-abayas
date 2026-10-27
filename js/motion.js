@@ -1,7 +1,7 @@
 /* =========================================================
-   رواق — الحركة (Preloader, Lenis, GSAP, Cursor)
+   شَهد — الحركة (Preloader, Lenis, GSAP, Cursor)
    كل شيء هنا اختياري: الموقع يعمل بالكامل لو فشل تحميل
-   المكتبات أو لو المستخدمة مفعّلة "تقليل الحركة".
+   المكتبات أو لو المستخدم مفعّل "تقليل الحركة".
    ========================================================= */
 
 const Motion = (() => {
@@ -31,7 +31,7 @@ const Motion = (() => {
     const el = document.getElementById('preloader');
     const done = () => {
       document.body.classList.remove('is-loading');
-      document.dispatchEvent(new CustomEvent('rawaq:ready'));
+      document.dispatchEvent(new CustomEvent('shahd:ready'));
     };
     if (!el) { done(); return Promise.resolve(); }
     const seen = Storage.session('seenIntro');
@@ -151,7 +151,7 @@ const Motion = (() => {
 
     if (deferred) {
       const c = ctx, fn = deferred;
-      document.addEventListener('rawaq:ready', () => { if (c === ctx) c.add(fn); }, { once: true });
+      document.addEventListener('shahd:ready', () => { if (c === ctx) c.add(fn); }, { once: true });
     }
     requestAnimationFrame(() => ScrollTrigger.refresh());
   }

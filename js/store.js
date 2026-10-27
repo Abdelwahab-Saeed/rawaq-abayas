@@ -1,5 +1,5 @@
 /* =========================================================
-   رواق — الحالة والتخزين المحلي
+   شَهد — الحالة والتخزين المحلي
    كل القراءة والكتابة محمية بـ try/catch حتى يعمل الموقع
    حتى لو كان التخزين المحلي غير متاح.
    ========================================================= */
@@ -7,23 +7,23 @@
 const Storage = {
   get(key, fallback) {
     try {
-      const raw = localStorage.getItem('rawaq.' + key);
+      const raw = localStorage.getItem('shahd.' + key);
       return raw ? JSON.parse(raw) : fallback;
     } catch (e) { return fallback; }
   },
   set(key, value) {
-    try { localStorage.setItem('rawaq.' + key, JSON.stringify(value)); } catch (e) { /* ignore */ }
+    try { localStorage.setItem('shahd.' + key, JSON.stringify(value)); } catch (e) { /* ignore */ }
   },
   session(key, value) {
     try {
-      if (value === undefined) return sessionStorage.getItem('rawaq.' + key);
-      sessionStorage.setItem('rawaq.' + key, value);
+      if (value === undefined) return sessionStorage.getItem('shahd.' + key);
+      sessionStorage.setItem('shahd.' + key, value);
     } catch (e) { return null; }
   }
 };
 
 const Store = {
-  cart: Storage.get('cart', []),            // [{ key, id, size, length, color, qty }]
+  cart: Storage.get('cart', []),            // [{ key, id, size, variant, qty }]
   wishlist: Storage.get('wishlist', []),    // [id]
   user: Storage.get('user', null),          // { name, email, phone }
   users: Storage.get('users', []),          // demo accounts
@@ -40,21 +40,20 @@ const Store = {
 
   persist(...keys) { keys.forEach(k => Storage.set(k, this[k])); },
 
-  /* ---------- المنتجات ---------- */
+  /* ---------- الأصناف ---------- */
   product(id) { return PRODUCTS.find(p => p.id === Number(id)); },
 
   /* ---------- السلة ---------- */
-  lineKey(id, size, length, color) { return [id, size || '', length || '', color || ''].join('|'); },
-  addToCart(id, { size, length, color, qty = 1 } = {}) {
+  lineKey(id, size, variant) { return [id, size || '', variant || ''].join('|'); },
+  addToCart(id, { size, variant, qty = 1 } = {}) {
     const p = this.product(id);
     if (!p) return null;
-    size = size || p.sizes[Math.min(1, p.sizes.length - 1)];
-    length = p.lengths.length ? (length || 56) : null;
-    color = color || p.colors[0].name;
-    const key = this.lineKey(id, size, length, color);
+    size = p.sizes.includes(size) ? size : defaultSize(p);
+    variant = p.variants.some(v => v.name === variant) ? variant : p.variants[0].name;
+    const key = this.lineKey(id, size, variant);
     const line = this.cart.find(l => l.key === key);
-    if (line) line.qty = Math.min(10, line.qty + qty);
-    else this.cart.push({ key, id: p.id, size, length, color, qty });
+    if (line) line.qty = Math.min(20, line.qty + qty);
+    else this.cart.push({ key, id: p.id, size, variant, qty });
     this.persist('cart');
     this.emit('cart');
     return p;
@@ -62,7 +61,7 @@ const Store = {
   setQty(key, qty) {
     const line = this.cart.find(l => l.key === key);
     if (!line) return;
-    line.qty = Math.max(0, Math.min(10, qty));
+    line.qty = Math.max(0, Math.min(20, qty));
     if (line.qty === 0) this.cart = this.cart.filter(l => l !== line);
     this.persist('cart');
     this.emit('cart');
@@ -81,14 +80,15 @@ const Store = {
   cartCount() { return this.cart.reduce((s, l) => s + l.qty, 0); },
   lineImage(line) {
     const p = this.product(line.id);
-    const c = p.colors.find(c => c.name === line.color) || p.colors[0];
-    return c.images[0];
+    const v = p.variants.find(v => v.name === line.variant) || p.variants[0];
+    return v.images[0];
+  },
+  linePrice(line) {
+    const p = this.product(line.id);
+    return p ? sizePrice(p, line.size) : 0;
   },
   subtotal() {
-    return this.cart.reduce((s, l) => {
-      const p = this.product(l.id);
-      return s + (p ? p.price * l.qty : 0);
-    }, 0);
+    return this.cart.reduce((s, l) => s + this.linePrice(l) * l.qty, 0);
   },
   discount(subtotal = this.subtotal()) {
     const c = this.coupon && COUPONS[this.coupon];
@@ -104,7 +104,7 @@ const Store = {
     code = String(code || '').trim().toUpperCase();
     const c = COUPONS[code];
     if (!c) return { ok: false, msg: 'الكود غير صحيح' };
-    if (this.subtotal() < c.min) return { ok: false, msg: `هذا الكود يعمل للطلبات فوق ${c.min.toLocaleString('en-US')} ج.م` };
+    if (this.subtotal() < c.min) return { ok: false, msg: `الكود ده للطلبات فوق ${c.min.toLocaleString('en-US')} ج.م` };
     this.coupon = code;
     this.persist('coupon');
     this.emit('cart');
@@ -122,7 +122,7 @@ const Store = {
     return this.isWished(id);
   },
 
-  /* ---------- آخر ما شاهدتِ ---------- */
+  /* ---------- آخر ما شاهدته ---------- */
   pushRecent(id) {
     id = Number(id);
     this.recent = [id, ...this.recent.filter(x => x !== id)].slice(0, 8);
@@ -138,7 +138,7 @@ const Store = {
   /* ---------- الحساب (تجريبي محليًا) ---------- */
   register({ name, email, phone, password }) {
     email = email.trim().toLowerCase();
-    if (this.users.some(u => u.email === email)) return { ok: false, msg: 'هذا البريد مسجل بالفعل، سجّلي الدخول' };
+    if (this.users.some(u => u.email === email)) return { ok: false, msg: 'البريد ده مسجّل قبل كده، سجّل دخول' };
     const user = { name: name.trim(), email, phone: phone.trim(), password };
     this.users.push(user);
     this.user = { name: user.name, email, phone: user.phone };
@@ -176,9 +176,9 @@ const Store = {
     const zone = (GOVERNORATES.find(g => g[0] === info.governorate) || [, 'metro'])[1];
     const shipping = this.shippingFee(subtotal, zone);
     const order = {
-      id: 'RW-' + String(Date.now()).slice(-5) + Math.floor(Math.random() * 9),
+      id: 'SH-' + String(Date.now()).slice(-5) + Math.floor(Math.random() * 9),
       createdAt: Date.now(),
-      items: this.cart.map(l => ({ ...l, name: this.product(l.id).name, price: this.product(l.id).price, image: this.lineImage(l) })),
+      items: this.cart.map(l => ({ ...l, name: this.product(l.id).name, price: this.linePrice(l), image: this.lineImage(l) })),
       subtotal, discount, shipping, total: subtotal - discount + shipping,
       coupon: this.coupon, zone, ...info
     };
