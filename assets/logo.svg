@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 260">
+  <rect width="220" height="260" fill="#0b0a09"/>
+  <path d="M30 240V110a80 80 0 0 1 160 0v130" fill="none" stroke="#d4af6a" stroke-width="2"/>
+  <path d="M50 240V112a60 60 0 0 1 120 0v128" fill="none" stroke="#d4af6a" stroke-width="1" opacity=".55"/>
+  <text x="110" y="168" text-anchor="middle" font-family="Amiri, serif" font-size="54" font-weight="700" fill="#f3ede3">رواق</text>
+  <text x="110" y="205" text-anchor="middle" font-family="Cormorant Garamond, serif" font-size="13" letter-spacing="7" fill="#d4af6a">RAWAQ</text>
+</svg>
